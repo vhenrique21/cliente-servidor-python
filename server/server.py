@@ -9,23 +9,23 @@ MAX_SEND_LINE = 1024
 
 
 def thread_send_file(connection, address):
-    print('Connected with:', address, "\n")
-    while True:
+    with connection:
+        print('Connected with:', address, "\n")
         data = connection.recv(MAX_LINE)
         if not data:
-            break
+            return
 
         decodeData = data.decode()
 
-        [HTTPmethod, filePath, httpVersion, host, hostName,
-         *others] = decodeData.split()
-
+        [HTTPmethod, filePath, httpVersion, _host, hostName,
+         *_others] = decodeData.split()
         filePath = filePath.split("/")[1]
 
         if (HTTPmethod != "GET") or (httpVersion != "HTTP/1.1"):
             print("Erro")
             connection.sendall(str.encode("Error"))
-            break
+            connection.close()
+            return
 
         address = socket.gethostbyname(hostName.split(':')[0])
 
@@ -38,13 +38,12 @@ def thread_send_file(connection, address):
             connection.send(str.encode(message), MAX_SEND_LINE)
             connection.sendall(fileContent, MAX_SEND_LINE)
             file.close()
-            break
         except:
             errorMessage = "HTTP/1.1 400 ERRO\n\n"
             connection.send(str.encode(errorMessage), MAX_SEND_LINE)
             file.close()
-            break
-    connection.close()
+        connection.close()
+        return
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -52,8 +51,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.listen(MAX_PENDING)
     while True:
         connection, address = s.accept()
-        try:
-            with connection:
-                threading.Thread(target=thread_send_file, args=(connection, address)).run()
-        except:
-            print("Erro em uma das threads")
+        if connection:
+            threading.Thread(target=thread_send_file, args=(connection, address)).start()
+
+
