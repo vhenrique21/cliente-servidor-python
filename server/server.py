@@ -19,6 +19,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     break
 
                 decodeData = data.decode()
+                print("Request: ", decodeData)
 
                 [HTTPmethod, filePath, httpVersion, host, hostName,
                 *others] = decodeData.split()
@@ -30,7 +31,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     connection.sendall(str.encode("Error"))
                     break
 
-                address = socket.gethostbyname(hostName)
+                address = socket.gethostbyname(hostName.split(':')[0])
 
                 try:
                     with open(filePath, mode='rb') as file:  # b is important -> binary
